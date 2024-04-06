@@ -1,14 +1,12 @@
 "use client";
 
-import * as z from "zod";
 import axios from "axios";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Chapter } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
-import { db } from "@/lib/db";
 
 interface ChapterVideoFormProps {
   initialData: Chapter;
@@ -16,9 +14,10 @@ interface ChapterVideoFormProps {
   chapterId: string;
 }
 
-interface VideoOption {
+interface GDVideo {
   id: string;
   name: string;
+  folderId: string;
 }
 
 export const ChapterVideoForm = ({
@@ -27,27 +26,32 @@ export const ChapterVideoForm = ({
   chapterId,
 }: ChapterVideoFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [videoOptions, setVideoOptions] = useState<VideoOption[]>([]);
-  const [selectedVideoId, setSelectedVideoId] = useState<string | undefined>(
-    initialData.videoUrl ?? undefined
-  );
+  const [videoOptions, setVideoOptions] = useState<GDVideo[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
 
   const router = useRouter();
 
-  const fetchVideoOptions = async () => {
+  const ChapterVideoForm = async () => {
     try {
-      const videos = await db.gDVideo.findMany();
-      setVideoOptions(videos);
+      const response = await fetch("/api/courses");
+      const data = await response.json();
+      setVideoOptions(data)
     } catch (error) {
-      console.error("Error fetching video options:", error);
+      console.error("Error fetching GD videos:", error);
     }
   };
+  
+  useEffect(() => {
+    ChapterVideoForm()
+  },[]
+  )
+
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
   const onSubmit = async () => {
     try {
-      if (selectedVideoId) {
+      if(selectedVideoId){
         await axios.patch(
           `/api/courses/${courseId}/chapters/${chapterId}`,
           { videoUrl: selectedVideoId }
@@ -55,16 +59,16 @@ export const ChapterVideoForm = ({
         toast.success("The section has been updated");
         toggleEdit();
         router.refresh();
-      } else {
+      setSelectedVideoId('')
+
+    }
+      else{
         toast.error("Please select a video");
       }
     } catch {
       toast.error("Oh! Something went wrong");
     }
   };
-
-  // Fetch video options when component mounts
-  fetchVideoOptions();
 
   return (
     <div className="mt-6 border bg-slate-100 rounded-md p-4">
@@ -99,7 +103,7 @@ export const ChapterVideoForm = ({
             onChange={(e) => setSelectedVideoId(e.target.value)}
             className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="">Select a video</option>
+            <option value=''>Select a video</option>
             {videoOptions.map((video) => (
               <option key={video.id} value={video.id}>
                 {video.name}
