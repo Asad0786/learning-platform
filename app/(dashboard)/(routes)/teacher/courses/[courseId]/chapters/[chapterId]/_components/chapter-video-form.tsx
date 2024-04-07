@@ -27,24 +27,44 @@ export const ChapterVideoForm = ({
 }: ChapterVideoFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [videoOptions, setVideoOptions] = useState<GDVideo[]>([]);
+  
+  const [folders, setFolders] = useState<any[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState<string>('');
+  
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
 
   const router = useRouter();
 
-  const ChapterVideoForm = async () => {
+  const fetchAllFolders = async () => {
     try {
-      const response = await fetch("/api/courses");
+      const response = await fetch("/api/folder");
+      const data = await response.json();
+      setFolders(data)
+    } catch (error) {
+      console.error("Error fetching Folders:", error);
+    }
+  };
+
+  const fetchVideos = async (folderId: string) => {
+    try {
+      if(!folderId){
+        setVideoOptions([])
+        setSelectedVideoId('')
+        return
+      }
+      const response = await fetch(`/api/courses?folderId=${folderId}`);
       const data = await response.json();
       setVideoOptions(data)
     } catch (error) {
-      console.error("Error fetching GD videos:", error);
+      console.error("Error fetching GD videos:", error)
     }
   };
   
   useEffect(() => {
-    ChapterVideoForm()
+    fetchAllFolders()
   },[]
   )
+
 
 
   const toggleEdit = () => setIsEditing((current) => !current);
@@ -98,13 +118,33 @@ export const ChapterVideoForm = ({
       )}
       {isEditing && (
         <div>
+           <select
+            value={selectedFolder}
+            onChange={(e) =>{
+              {
+                setSelectedFolder(e.target.value)
+                fetchVideos(e.target.value)
+              }
+            }}
+            className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value=''>Select a video</option>
+            {folders?.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
+          <div className="text-xs text-muted-foreground mt-4">
+            Select a Folder  for this section
+          </div>
           <select
             value={selectedVideoId}
             onChange={(e) => setSelectedVideoId(e.target.value)}
             className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value=''>Select a video</option>
-            {videoOptions.map((video) => (
+            {videoOptions?.map((video) => (
               <option key={video.id} value={video.id}>
                 {video.name}
               </option>

@@ -27,9 +27,18 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(_: any, res: NextResponse) {
+export async function GET(req: Request, res: NextResponse) {
   try {
-    const gdVideoData: any[] = await db.gDVideo.findMany();
+    const folderId = new URL(req.url).searchParams.get('folderId')
+
+    if (!folderId) {
+      return new NextResponse("Please select a folder", { status: 400 });
+    }
+    const gdVideoData: any[] = await db.gDVideo.findMany({
+      where: {
+        folderId : folderId
+      }
+    });
 
     const gdVideos = gdVideoData.map((video) => ({
       id: video.id,
@@ -37,9 +46,10 @@ export async function GET(_: any, res: NextResponse) {
       folderId: video.folderId,
     }));
 
-    return new Response(JSON.stringify(gdVideos), { status: 200 });
+    return new NextResponse(JSON.stringify(gdVideos), { status: 200 });
   } catch (error) {
     console.error("Error fetching videos List:", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
